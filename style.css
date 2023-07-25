@@ -158,7 +158,9 @@ body {
     overflow-y: auto;
 }
 
-table, th, td {
+table,
+th,
+td {
     margin: auto;
     border: 1px solid;
     padding: 0.5rem;
@@ -169,4 +171,4 @@ table, th, td {
     background-color: black;
     color: white;
     pointer-events: none;
-  }
+}

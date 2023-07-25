@@ -13,18 +13,40 @@ let currentUser;
 let userQuizData = [];
 let currentQuestionIndex;
 
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+}
+
 function setAvailableQuestions() {
     const storedQuestions = localStorage.getItem(`${currentUser.email}_quizData`);
     userQuizData = storedQuestions ? JSON.parse(storedQuestions) : [];
 
-    if (userQuizData.length === 0 || userQuizData.length >= 10) {
-        availableQuestions = [...quiz];
-        userQuizData = [];
+    if (userQuizData.length >= 4) {
+        questionCounter = userQuizData.length;
+        availableQuestions = [];
+        quiz.forEach((question) => {
+            if (!userQuizData.find((data) => data.question.q === question.q)) {
+                availableQuestions.push(question);
+            }
+        });
     } else {
-        const answeredQuestions = userQuizData.map((data) => data.question.q);
-        availableQuestions = quiz.filter(
-            (question) => !answeredQuestions.includes(question.q)
-        );
+        let storedShuffledOrder = localStorage.getItem(`${currentUser.email}_shuffledOrder`);
+        if (storedShuffledOrder) {
+            const shuffledOrder = JSON.parse(storedShuffledOrder);
+            availableQuestions = shuffledOrder.map((index) => quiz[index]).filter(
+                (question) => !userQuizData.find((data) => data.question.q === question.q)
+            );
+        } else {
+            const shuffledOrder = [...Array(quiz.length).keys()];
+            shuffleArray(shuffledOrder);
+            availableQuestions = shuffledOrder.map((index) => quiz[index]).filter(
+                (question) => !userQuizData.find((data) => data.question.q === question.q)
+            );
+            localStorage.setItem(`${currentUser.email}_shuffledOrder`, JSON.stringify(shuffledOrder));
+        }
     }
 }
 
@@ -34,8 +56,7 @@ function getNewQuestion() {
         return;
     }
 
-    currentQuestionIndex = Math.floor(Math.random() * availableQuestions.length);
-    currentQuestion = availableQuestions[currentQuestionIndex];
+    currentQuestion = availableQuestions.shift();
     questionText.innerHTML = currentQuestion.q;
 
     availableOptions = [];
@@ -76,8 +97,6 @@ function getResult(element) {
     element.classList.add("selected");
 
     disableOptions();
-
-    availableQuestions.splice(currentQuestionIndex, 1);
 }
 
 function setCurrentState(states = 'login') {
@@ -106,6 +125,12 @@ function setCurrentScreen() {
                 homeBox.classList.add("hide");
                 quizBox.classList.remove("hide");
 
+                const storedUserQuizData = localStorage.getItem(`${currentUser.email}_quizData`);
+                userQuizData = storedUserQuizData ? JSON.parse(storedUserQuizData) : [];
+
+                const storedQuestionCounter = localStorage.getItem(`${currentUser.email}_questionCounter`);
+                questionCounter = storedQuestionCounter ? parseInt(storedQuestionCounter) : 0;
+
                 setAvailableQuestions();
                 getNewQuestion();
                 enableOptions();
@@ -123,6 +148,7 @@ function setCurrentScreen() {
         }
     }
 }
+
 
 setCurrentScreen();
 
@@ -192,36 +218,46 @@ function enableOptions() {
     }
 }
 
+let lastDisplayedQuestionIndex = 0;
+
 function back() {
     if (questionCounter > 1) {
         questionCounter -= 1;
-        const previousQuestionData = userQuizData[questionCounter - 1];
-        currentQuestion = previousQuestionData.question;
-        questionText.innerHTML = currentQuestion.q;
-        availableOptions = [];
-        optionContainer.innerHTML = '';
-        const optionLen = currentQuestion.options.length;
-        for (let i = 0; i < optionLen; i++) {
-            availableOptions.push(i);
-            const optionIndex = i;
-            const option = document.createElement("div");
-            option.innerHTML = currentQuestion.options[optionIndex];
-            option.id = optionIndex;
-            option.className = "option";
-            optionContainer.appendChild(option);
 
-            if (previousQuestionData && optionIndex === previousQuestionData.selectedOption) {
-                option.style.backgroundColor = "grey";
-                option.style.color = "white";
-                option.classList.add("selected");
+        questionCounter = Math.max(questionCounter, lastDisplayedQuestionIndex);
+
+        const previousQuestionData = userQuizData[questionCounter - 1];
+
+        if (previousQuestionData && previousQuestionData.question) {
+            currentQuestion = previousQuestionData.question;
+            questionText.innerHTML = currentQuestion.q;
+            availableOptions = [];
+            optionContainer.innerHTML = '';
+            const optionLen = currentQuestion.options.length;
+            for (let i = 0; i < optionLen; i++) {
+                availableOptions.push(i);
+                const optionIndex = i;
+                const option = document.createElement("div");
+                option.innerHTML = currentQuestion.options[optionIndex];
+                option.id = optionIndex;
+                option.className = "option";
+                optionContainer.appendChild(option);
+
+                if (previousQuestionData && optionIndex === previousQuestionData.selectedOption) {
+                    option.style.backgroundColor = "grey";
+                    option.style.color = "white";
+                    option.classList.add("selected");
+                }
+            }
+
+            if (previousQuestionData && previousQuestionData.selectedOption !== undefined) {
+                disableOptions();
+            } else {
+                enableOptions();
             }
         }
 
-        if (previousQuestionData && previousQuestionData.selectedOption !== undefined) {
-            disableOptions();
-        } else {
-            enableOptions();
-        }
+        lastDisplayedQuestionIndex = questionCounter;
     } else {
         alert("This is the first question, there is no previous question.");
     }
@@ -237,7 +273,7 @@ function next() {
     saveUserAnswer();
     disableOptions();
 
-    setCookie('questionCounter', questionCounter);
+    localStorage.setItem(`${currentUser.email}_questionCounter`, questionCounter);
 
     const userAttempts = JSON.parse(localStorage.getItem(`${currentUser.email}_quizData`));
     const userAttemptsLength = userAttempts.length;
@@ -248,6 +284,7 @@ function next() {
         enableOptions();
     }
 }
+
 
 function saveUserAnswer() {
     const selectedOption = optionContainer.querySelector(".selected");
@@ -282,14 +319,15 @@ function quizResult() {
 
     const currentUserIndex = usersArray.findIndex((user) => user.email === currentUser.email);
     if (currentUserIndex !== -1) {
-        if (correctAnswers > usersArray[currentUserIndex].score || usersArray[currentUserIndex].score === undefined) {
-            usersArray[currentUserIndex].score = correctAnswers;
+        const userScore = userQuizData.filter((data) => data.question.answer === data.selectedOption).length;
+        if (userScore > usersArray[currentUserIndex].score || usersArray[currentUserIndex].score === undefined) {
+            usersArray[currentUserIndex].score = userScore;
         }
     } else {
         const userObject = {
             username: currentUser.username,
             email: currentUser.email,
-            score: correctAnswers
+            score: userQuizData.filter((data) => data.question.answer === data.selectedOption).length
         };
         usersArray.push(userObject);
     }
