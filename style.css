@@ -117,7 +117,30 @@ body {
 }
 
 .result-box .btn {
-    margin-right: 20px;
+    margin-top: 1rem;
+}
+
+.userLabel {
+    font-size: 18px;
+    font-weight: 400;
+    padding-right: 1rem;
+}
+
+.userDetails {
+    padding: 0.25rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid lightgrey;
+    border-radius: 0.25rem;
+    width: 100%;
+    height: 3rem;
+    font-size: 18px;
+    font-weight: 300;
+}
+
+.quizBoxUserName {
+    font-size: 19px;
+    font-weight: 400;
+    color: grey;
 }
 
 @media(max-width: 767px) {
@@ -128,4 +151,24 @@ body {
     body {
         padding: 15px;
     }
+}
+
+.table-container {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+table,
+th,
+td {
+    margin: auto;
+    border: 1px solid;
+    padding: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.option.selected {
+    background-color: black;
+    color: white;
+    pointer-events: none;
 }

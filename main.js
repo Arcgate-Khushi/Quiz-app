@@ -56,7 +56,7 @@ function getNewQuestion() {
         return;
     }
 
-    currentQuestion = availableQuestions.shift();
+    currentQuestion = availableQuestions[questionCounter];
     questionText.innerHTML = currentQuestion.q;
 
     availableOptions = [];
@@ -222,46 +222,50 @@ let lastDisplayedQuestionIndex = 0;
 
 function back() {
     if (questionCounter > 1) {
-        questionCounter -= 1;
-
-        questionCounter = Math.max(questionCounter, lastDisplayedQuestionIndex);
+        questionCounter--;
 
         const previousQuestionData = userQuizData[questionCounter - 1];
-
         if (previousQuestionData && previousQuestionData.question) {
-            currentQuestion = previousQuestionData.question;
-            questionText.innerHTML = currentQuestion.q;
-            availableOptions = [];
-            optionContainer.innerHTML = '';
-            const optionLen = currentQuestion.options.length;
-            for (let i = 0; i < optionLen; i++) {
-                availableOptions.push(i);
-                const optionIndex = i;
-                const option = document.createElement("div");
-                option.innerHTML = currentQuestion.options[optionIndex];
-                option.id = optionIndex;
-                option.className = "option";
-                optionContainer.appendChild(option);
-
-                if (previousQuestionData && optionIndex === previousQuestionData.selectedOption) {
-                    option.style.backgroundColor = "grey";
-                    option.style.color = "white";
-                    option.classList.add("selected");
-                }
-            }
-
-            if (previousQuestionData && previousQuestionData.selectedOption !== undefined) {
-                disableOptions();
-            } else {
-                enableOptions();
-            }
+            loadPreviousQuestion(previousQuestionData);
         }
-
-        lastDisplayedQuestionIndex = questionCounter;
     } else {
         alert("This is the first question, there is no previous question.");
     }
 }
+
+function loadPreviousQuestion(questionData) {
+    currentQuestion = questionData.question;
+    questionText.innerHTML = currentQuestion.q;
+
+    availableOptions = [];
+    optionContainer.innerHTML = '';
+
+    const optionLen = currentQuestion.options.length;
+    for (let i = 0; i < optionLen; i++) {
+        availableOptions.push(i);
+        const optionIndex = i;
+        const option = document.createElement("div");
+        option.innerHTML = currentQuestion.options[optionIndex];
+        option.id = optionIndex;
+        option.className = "option";
+        optionContainer.appendChild(option);
+
+        if (optionIndex === questionData.selectedOption) {
+            option.style.backgroundColor = "grey";
+            option.style.color = "white";
+            option.classList.add("selected");
+        }
+    }
+
+    if (questionData.selectedOption !== undefined) {
+        disableOptions();
+    } else {
+        enableOptions();
+    }
+}
+
+// ... (rest of the code)
+
 
 function next() {
     const selectedOption = optionContainer.querySelector(".selected");
